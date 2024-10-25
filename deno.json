@@ -1,7 +1,17 @@
 {
   "compilerOptions": {
+    "lib": [
+      "esnext",
+      "dom",
+      "deno.ns",
+      "deno.unstable"
+    ],
+    "types": [
+      "vite/client"
+    ],
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "hono/jsx",
+    "noUncheckedIndexedAccess": true
   },
   "deploy": {
     "entrypoint": "main.ts",
@@ -13,43 +23,37 @@
     "project": "4513echo-twitter-graphs"
   },
   "exclude": [
-    "**/_fresh/*"
+    "dist"
   ],
   "imports": {
-    "$fresh/": "https://deno.land/x/fresh@1.6.1/",
-    "$fresh_charts/": "https://deno.land/x/fresh_charts@0.3.1/",
-    "$std/": "https://deno.land/std@0.210.0/",
-    "@/": "./",
-    "@preact/signals": "https://esm.sh/*@preact/signals@1.2.1",
-    "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.0",
-    "preact": "https://esm.sh/preact@10.19.2",
-    "preact/": "https://esm.sh/preact@10.19.2/"
+    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.0",
+    "@fabon/vremel": "jsr:@fabon/vremel@^0.3.4",
+    "@hono/vite-build": "npm:@hono/vite-build@^1.1.0",
+    "@hono/vite-dev-server": "npm:@hono/vite-dev-server@^0.16.0",
+    "chart.js": "npm:chart.js@^4.4.5",
+    "hono": "npm:hono@^4.4.6",
+    "honox": "npm:honox@^0.1.26",
+    "vite": "npm:vite@^5.4.10"
   },
   "lint": {
     "rules": {
       "include": [
         "eqeqeq",
         "no-await-in-loop"
-      ],
-      "tags": [
-        "fresh",
-        "recommended"
       ]
     }
   },
-  "lock": false,
+  "nodeModulesDir": "auto",
   "tasks": {
-    "build": "deno run --allow-all dev.ts build",
-    "check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
-    "cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable --allow-all -",
-    "deploy": "deno run --allow-all --env https://deno.land/x/deploy@1.9.1/deployctl.ts deploy",
+    "check": "deno fmt --check && deno lint && deno check .",
+    "deploy": "deno run --allow-all --env jsr:@deno/deployctl deploy",
     "kv": "deno run --allow-env --allow-net --env scripts/kv.ts",
-    "manifest": "deno task cli manifest $(pwd)",
-    "preview": "deno run --allow-all main.ts",
-    "start": "deno run --allow-all --watch=static/,routes/ dev.ts",
-    "update": "deno run --allow-all --reload https://fresh.deno.dev/update ."
+    "dev": "vite",
+    "build": "vite build --mode client && vite build",
+    "preview": "cd dist && deno serve --allow-env --allow-net --allow-read=. --env index.js"
   },
   "unstable": [
-    "kv"
+    "kv",
+    "temporal"
   ]
 }

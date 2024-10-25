@@ -1,33 +1,35 @@
-import { datetime } from "https://deno.land/x/ptera@v1.0.2/mod.ts";
-import TWEET_DATES from "@/tweet_dates.json" with { type: "json" };
+import { isBefore } from "@fabon/vremel";
+import TWEET_DATES from "../tweet_dates.json" with { type: "json" };
 
 const kv = await Deno.openKv(Deno.env.get("KV_URL"));
 
 const items = Object.entries(Object.groupBy(
-  TWEET_DATES.map(({ date, isRT }) => (
-    { date: datetime(new Date(date), { timezone: "Asia/Tokyo" }), isRT }
-  )),
-  ({ date }) => date.toISODate(),
+  TWEET_DATES.map(({ date, isRT }) => ({
+    date: Temporal.Instant.from(date).toZonedDateTimeISO("Asia/Tokyo")
+      .toPlainDate().toString(),
+    isRT,
+  })),
+  ({ date }) => date,
 )) // [date, [normal, rt]]
   .sort(([a], [b]) => a.localeCompare(b))
   .map<[string, [number, number]]>(([date, dates]) => [
     date,
-    dates.reduce<[number, number]>(
-      (acc, { isRT }) => [acc[0] + (isRT ? 0 : 1), acc[1] + (isRT ? 1 : 0)],
+    dates?.reduce<[number, number]>(
+      (acc, { isRT }) => (acc[isRT ? 1 : 0]++, acc),
       [0, 0],
-    ),
+    ) ?? [0, 0],
   ]);
 
 function fillDates(items: [string, [number, number]][]): void {
-  const since = datetime(items[0][0]);
-  const until = datetime(items.at(-1)![0]);
+  const since = Temporal.PlainDate.from(items[0]![0]);
+  const until = Temporal.PlainDate.from(items.at(-1)![0]);
   const dateMap = Object.fromEntries(items);
   let now = since;
-  while (now.isBefore(until)) {
-    if (!dateMap[now.toISODate()]) {
-      items.push([now.toISODate(), [0, 0]]);
+  while (isBefore(now, until)) {
+    if (!dateMap[now.toString()]) {
+      items.push([now.toString(), [0, 0]]);
     }
-    now = now.add({ day: 1 });
+    now = now.add({ days: 1 });
   }
   items.sort(([a], [b]) => a.localeCompare(b));
 }
