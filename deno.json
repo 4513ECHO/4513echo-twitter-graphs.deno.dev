@@ -14,12 +14,11 @@
     "noUncheckedIndexedAccess": true
   },
   "deploy": {
-    "entrypoint": "main.ts",
-    "exclude": [
-      "node_modules",
-      "tweet_dates.json"
+    "entrypoint": "dist/index.js",
+    "include": [
+      "deno.json",
+      "dist"
     ],
-    "include": [],
     "project": "4513echo-twitter-graphs"
   },
   "exclude": [
@@ -50,7 +49,7 @@
     "kv": "deno run --allow-env --allow-net --env scripts/kv.ts",
     "dev": "vite",
     "build": "vite build --mode client && vite build",
-    "preview": "cd dist && deno serve --allow-env --allow-net --allow-read=. --env index.js"
+    "preview": "deno serve --allow-env --allow-net --allow-read=. --env dist/index.js"
   },
   "unstable": [
     "kv",

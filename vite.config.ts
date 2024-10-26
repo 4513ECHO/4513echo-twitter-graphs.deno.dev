@@ -14,6 +14,6 @@ export default defineConfig({
   plugins: [
     deno(),
     honox({ devServer: { adapter } }),
-    build({ external: ["hono", "chart.js"] }),
+    build({ external: ["hono", "chart.js"], staticRoot: "dist" }),
   ],
 });
