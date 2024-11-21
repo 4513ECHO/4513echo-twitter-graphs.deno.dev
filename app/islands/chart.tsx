@@ -5,6 +5,7 @@ import {
   type DefaultDataPoint,
 } from "chart.js/auto";
 import { type JSX, useEffect, useRef } from "hono/jsx";
+import "chartjs-adapter-date-fns";
 
 function useChart<
   Type extends ChartType,

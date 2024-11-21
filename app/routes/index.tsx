@@ -48,7 +48,7 @@ export default createRoute(
             canvas={{
               class: canvasClass,
               height: 700,
-              width: data.length * 3,
+              width: data.length * 4,
             }}
             type="bar"
             options={{
@@ -56,7 +56,18 @@ export default createRoute(
               responsive: false,
               scales: {
                 y: { beginAtZero: true, stacked: true },
-                x: { stacked: true },
+                x: {
+                  grid: { offset: false },
+                  stacked: true,
+                  ticks: { align: "start" },
+                  type: "time",
+                  time: {
+                    tooltipFormat: "yyyy-MM-dd",
+                    unit: "month",
+                    minUnit: "day",
+                    displayFormats: { month: "yyyy/MM" },
+                  },
+                },
               },
             }}
             data={{
