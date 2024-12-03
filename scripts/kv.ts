@@ -1,4 +1,3 @@
-import { isBefore } from "@fabon/vremel";
 import TWEET_DATES from "../tweet_dates.json" with { type: "json" };
 
 const kv = await Deno.openKv(Deno.env.get("KV_URL"));
@@ -12,49 +11,42 @@ const items = Object.entries(Object.groupBy(
   ({ date }) => date,
 )) // [date, [normal, rt]]
   .sort(([a], [b]) => a.localeCompare(b))
-  .map<[string, [number, number]]>(([date, dates]) => [
+  .map(([date, dates]) => [date, dates?.map(({ isRT }) => isRT) ?? []] as const)
+  .map<[string, [number, number]]>(([date, isRTs]) => [
     date,
-    dates?.reduce<[number, number]>(
-      (acc, { isRT }) => (acc[isRT ? 1 : 0]++, acc),
-      [0, 0],
-    ) ?? [0, 0],
+    isRTs.reduce(
+      (acc, isRT) => (acc[isRT ? 1 : 0]++, acc),
+      [0, 0] as const,
+    ),
   ]);
-
-function fillDates(items: [string, [number, number]][]): void {
-  const since = Temporal.PlainDate.from(items[0]![0]);
-  const until = Temporal.PlainDate.from(items.at(-1)![0]);
-  const dateMap = Object.fromEntries(items);
-  let now = since;
-  while (isBefore(now, until)) {
-    if (!dateMap[now.toString()]) {
-      items.push([now.toString(), [0, 0]]);
-    }
-    now = now.add({ days: 1 });
-  }
-  items.sort(([a], [b]) => a.localeCompare(b));
-}
-fillDates(items);
 
 switch (Deno.args[0]) {
   case "set": {
-    let [atomic, count] = [kv.atomic(), 0];
-    const promises: Promise<Deno.KvCommitResult | Deno.KvCommitError>[] = [];
-    for (const [date, counts] of items) {
-      atomic.set(["tweet_count", date], counts);
-      if (count >= 100) {
-        promises.push(atomic.commit());
-        [atomic, count] = [kv.atomic(), 0];
-      }
-      count++;
-    }
-    promises.push(atomic.commit());
-    console.log(await Promise.all(promises));
+    const result = await items
+      .reduce(
+        (atomic, [date, counts]) => atomic.set(["tweet_count", date], counts),
+        kv.atomic(),
+      )
+      .commit();
+    console.log(result);
     break;
   }
   case "get": {
-    for await (const item of kv.list({ prefix: ["tweet_count"] })) {
-      console.log([item.key[1], item.value]);
+    for await (const { key, value } of kv.list({ prefix: ["tweet_count"] })) {
+      console.log([key[1], value]);
     }
+    break;
+  }
+  case "clear": {
+    const result =
+      await (await Array.fromAsync(kv.list({ prefix: ["tweet_count"] })))
+        .map(({ key }) => key)
+        .reduce(
+          (atomic, key) => atomic.delete(key),
+          kv.atomic(),
+        )
+        .commit();
+    console.log(result);
     break;
   }
   case "show": {
@@ -62,5 +54,9 @@ switch (Deno.args[0]) {
       console.log(item);
     }
     break;
+  }
+  default: {
+    console.log("Usage: deno task kv [set|get|clear|show]");
+    Deno.exit(1);
   }
 }
