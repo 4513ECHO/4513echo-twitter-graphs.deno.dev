@@ -25,15 +25,14 @@
     "dist"
   ],
   "imports": {
-    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.0",
-    "@fabon/vremel": "jsr:@fabon/vremel@^0.3.4",
+    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.1",
     "@hono/vite-build": "npm:@hono/vite-build@^1.1.0",
-    "@hono/vite-dev-server": "npm:@hono/vite-dev-server@^0.16.0",
-    "chart.js": "npm:chart.js@^4.4.5",
+    "@hono/vite-dev-server": "npm:@hono/vite-dev-server@^0.17.0",
+    "chart.js": "npm:chart.js@^4.4.7",
     "chartjs-adapter-date-fns": "npm:chartjs-adapter-date-fns@^3.0.0",
-    "hono": "npm:hono@^4.4.6",
-    "honox": "npm:honox@^0.1.26",
-    "vite": "npm:vite@^5.4.10"
+    "hono": "npm:hono@^4.6.12",
+    "honox": "npm:honox@^0.1.27",
+    "vite": "npm:vite@^5.4.11"
   },
   "lint": {
     "rules": {
@@ -46,11 +45,16 @@
   "nodeModulesDir": "auto",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check .",
-    "deploy": "deno run --allow-all --env jsr:@deno/deployctl deploy",
-    "kv": "deno run --allow-env --allow-net --env scripts/kv.ts",
+    "deploy": {
+      "command": "deno run --env-file -A jsr:@deno/deployctl deploy",
+      "dependencies": [
+        "build"
+      ]
+    },
+    "kv": "deno run --env-file -NE='DENO_*',KV_URL scripts/kv.ts",
     "dev": "vite",
     "build": "vite build --mode client && vite build",
-    "preview": "deno serve --allow-env --allow-net --allow-read=. --env dist/index.js"
+    "preview": "deno serve --env-file -E='DENO_*',KV_URL -NR=. dist/index.js"
   },
   "unstable": [
     "kv",
