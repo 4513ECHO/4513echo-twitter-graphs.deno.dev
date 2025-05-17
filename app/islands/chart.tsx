@@ -1,51 +1,71 @@
-import {
-  Chart,
-  type ChartConfiguration,
-  type ChartType,
-  type DefaultDataPoint,
-} from "chart.js/auto";
-import { type JSX, useEffect, useRef } from "hono/jsx";
+import { use, useRef } from "react";
+import { BarElement, Chart, LinearScale, TimeScale, Tooltip } from "chart.js";
+import { Bar } from "react-chartjs-2";
 import "chartjs-adapter-date-fns";
+import { OriginContext, prefetch, PrefetchContext } from "./prefetch.ts";
+import { useChartUpdate } from "./eventsource.tsx";
 
-function useChart<
-  Type extends ChartType,
-  Data = DefaultDataPoint<Type>,
-  Label = unknown,
->(options: ChartConfiguration<Type, Data, Label>) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const chartRef = useRef<Chart<Type, Data, Label> | null>(null);
+const ChartColors = {
+  Green: "rgb(75, 192, 192)",
+  Blue: "rgb(54, 162, 235)",
+};
 
-  useEffect(() => {
-    if (canvasRef.current === null) {
-      throw new Error("canvas is null");
-    }
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
+export default function ChartComponent() {
+  Chart.register(BarElement, LinearScale, TimeScale, Tooltip);
+  const chartRef = useRef<Chart<"bar">>(null);
+  // const prefetchPromise = use(PrefetchContext);
+  // const { begin, latest, total } = use(prefetchPromise);
+  const origin = use(OriginContext);
+  console.log("origin", origin);
+  const { begin, latest, total } = use(prefetch(origin));
+  // const { begin, latest, total } = use(PrefetchContext);
 
-    chartRef.current = new Chart(
-      canvasRef.current,
-      options,
-    );
+  useChartUpdate(chartRef);
 
-    return () => {
-      chartRef.current?.destroy();
-    };
-  }, [canvasRef, options]);
-
-  return { canvasRef, chartRef };
-}
-
-export default function ChartComponent<Type extends ChartType>(
-  props: ChartConfiguration<Type> & {
-    canvas?: JSX.IntrinsicElements["canvas"];
-  },
-) {
-  const { canvasRef, chartRef } = useChart<Type>(props);
-
-  useEffect(() => {
-    chartRef.current?.render();
-  }, []);
-
-  return <canvas ref={canvasRef} {...props.canvas} />;
+  return (
+    <Bar
+      ref={chartRef}
+      style={{ position: "absolute", left: 0, top: 0 }}
+      height={700}
+      width={total * 4}
+      options={{
+        plugins: { tooltip: { mode: "index" } },
+        animation: false,
+        responsive: false,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, stacked: true },
+          x: {
+            grid: { offset: false },
+            stacked: true,
+            ticks: { align: "start" },
+            type: "time",
+            time: {
+              tooltipFormat: "yyyy-MM-dd",
+              unit: "month",
+              minUnit: "day",
+              displayFormats: { month: "yyyy/MM" },
+            },
+            min: new Date(begin).valueOf(),
+            max: new Date(latest).valueOf(),
+          },
+        },
+      }}
+      data={{
+        labels: [],
+        datasets: [
+          {
+            label: "Normal Tweets",
+            data: [],
+            backgroundColor: ChartColors.Blue,
+          },
+          {
+            label: "Retweets",
+            data: [],
+            backgroundColor: ChartColors.Green,
+          },
+        ],
+      }}
+    />
+  );
 }

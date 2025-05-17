@@ -1,3 +1,4 @@
+import { chunk } from "@std/collections/chunk";
 import TWEET_DATES from "../tweet_dates.json" with { type: "json" };
 
 const kv = await Deno.openKv(Deno.env.get("KV_URL"));
@@ -22,13 +23,19 @@ const items = Object.entries(Object.groupBy(
 
 switch (Deno.args[0]) {
   case "set": {
-    const result = await items
-      .reduce(
+    const result = chunk(items, 1000).map((chunkded) =>
+      chunkded.reduce(
         (atomic, [date, counts]) => atomic.set(["tweet_count", date], counts),
         kv.atomic(),
-      )
-      .commit();
-    console.log(result);
+      ).commit()
+    ).concat(
+      kv.atomic()
+        .set(["tweet_begin"], items[0]?.[0])
+        .set(["tweet_latest"], items.at(-1)?.[0])
+        .set(["tweet_total"], items.length)
+        .commit(),
+    );
+    console.log(await Promise.all(result));
     break;
   }
   case "get": {
